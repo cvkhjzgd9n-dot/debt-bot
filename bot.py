@@ -9,7 +9,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 TOKEN = "8891387008:AAEVAnjipRs0iJUY-R7ftZrtS32g6BKjmnQ"
 
 # Твой Telegram ID
-ALLOWED_USER_IDS = [850220701]
+ALLOWED_USER_IDS = [850220701,1091645322]
 
 bot = Bot(token=TOKEN)
 storage = MemoryStorage()
@@ -147,10 +147,21 @@ async def process_payment(message: types.Message):
         parse_mode="Markdown"
     )
 
+async def set_bot_commands(bot: Bot):
+    commands = [
+        types.BotCommand(command="start", description="Перезапустить бота"),
+        types.BotCommand(command="status", description="Текущий остаток долга"),
+        types.BotCommand(command="history", description="История платежей"),
+        types.BotCommand(command="undo", description="Отменить последний платеж")
+    ]
+    await bot.set_my_commands(commands)
+
 async def main():
+    logging.basicConfig(level=logging.INFO)
+    await set_bot_commands(bot)
     print("Бот запущен...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     asyncio.run(main())
+
