@@ -1,15 +1,17 @@
 import asyncio
 import logging
+import os
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiohttp import web
 
-# Твой токен от BotFather (вставь вместо текста ниже свой токен в кавычках)
+# Твой токен от BotFather
 TOKEN = "8891387008:AAEVAnjipRs0iJUY-R7ftZrtS32g6BKjmnQ"
 
-# Твой Telegram ID
-ALLOWED_USER_IDS = [850220701,1091645322]
+# Твой Telegram ID и ID второго пользователя
+ALLOWED_USER_IDS = [850220701, 1091645322]
 
 bot = Bot(token=TOKEN)
 storage = MemoryStorage()
@@ -71,7 +73,7 @@ async def cmd_history(message: types.Message):
         history_text += (
             f"{idx}. Дата/Месяц: {item.get('month_str', '—')} | "
             f"Внесено: {item['total_paid']:,.2f} руб. "
-            f"(В долг: {item['to_debt']:,.2f}, Ежемесячный: {item['to_monthly']:,.2f})\n"
+            f"(В долг: {item['to_debt']:,.2f}, Ежемесячный: {item['to_monthly']}) — внес пользователь\n"
         )
     
     await message.answer(history_text, parse_mode="Markdown")
@@ -104,19 +106,15 @@ async def process_payment(message: types.Message):
     clean_text = message.text.replace(',', '.')
     total_paid = float(clean_text)
     
-    # Получаем текущий год и месяц (например, "2026-09")
     current_month = datetime.now().strftime("%Y-%m")
     
-    # Проверяем, был ли уже совершен ежемесячный платеж в этом календарном месяце
     monthly_already_paid = any(
         item.get("month") == current_month and item.get("to_monthly", 0) > 0 
         for item in debt_data["history"]
     )
     
-    # Если за этот месяц 15к еще не платили, то вычитаем их. Если уже платили — вычет 0.
     monthly_deduction = 0.0 if monthly_already_paid else debt_data["monthly_fee"]
     
-    # Проверка, если это самый первый платеж в месяце, а сумма меньше 15к
     if not monthly_already_paid and total_paid < monthly_deduction:
         await message.answer(
             f"⚠️ Введенная сумма ({total_paid:,.2f} руб.) меньше обязательного ежемесячного платежа ({monthly_deduction:,.2f} руб.) для этого месяца!"
@@ -126,13 +124,12 @@ async def process_payment(message: types.Message):
     to_debt = total_paid - monthly_deduction
     debt_data["total_debt"] -= to_debt
     
-    # Сохраняем в историю с привязкой к месяцу
     debt_data["history"].append({
         "total_paid": total_paid,
         "to_debt": to_debt,
         "to_monthly": monthly_deduction,
         "month": current_month,
-        "month_str": datetime.now().strftime("%B %Y")  # Месяц словами для красоты
+        "month_str": datetime.now().strftime("%B %Y")
     })
     
     if monthly_deduction > 0:
@@ -156,12 +153,4 @@ async def set_bot_commands(bot: Bot):
     ]
     await bot.set_my_commands(commands)
 
-async def main():
-    logging.basicConfig(level=logging.INFO)
-    await set_bot_commands(bot)
-    print("Бот запущен...")
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
+# Веб
