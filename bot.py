@@ -7,7 +7,8 @@ from aiogram.filters import Command
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiohttp import web
 
-TOKEN = "8891387008:AAEVAnjipRs0iJUY-R7ftZrtS32g6BKjmnQ"
+TOKEN = os.environ.get("BOT_TOKEN")
+
 ALLOWED_USER_IDS = [850220701, 1091645322]
 
 bot = Bot(token=TOKEN)
